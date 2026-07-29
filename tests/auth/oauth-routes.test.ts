@@ -99,7 +99,12 @@ async function beginAuthorization(options: { state?: string; scopes?: string } =
   }
 }
 
-function useCloudflareAuthSuccess(): void {
+function useCloudflareAuthSuccess(): {
+  userCalls: () => number
+  accountCalls: () => number
+} {
+  let userCalls = 0
+  let accountCalls = 0
   server.use(
     http.post('https://dash.cloudflare.com/oauth2/token', () =>
       HttpResponse.json({
@@ -110,13 +115,16 @@ function useCloudflareAuthSuccess(): void {
         token_type: 'bearer'
       })
     ),
-    http.get('https://api.cloudflare.com/client/v4/user', () =>
-      HttpResponse.json(cfSuccess({ id: 'user-1', email: 'user@example.com' }))
-    ),
-    http.get('https://api.cloudflare.com/client/v4/accounts', () =>
-      HttpResponse.json(cfAccountsSuccess([{ id: 'acc-1', name: 'Account One' }]))
-    )
+    http.get('https://api.cloudflare.com/client/v4/user', () => {
+      userCalls++
+      return HttpResponse.json(cfSuccess({ id: 'user-1', email: 'user@example.com' }))
+    }),
+    http.get('https://api.cloudflare.com/client/v4/accounts', () => {
+      accountCalls++
+      return HttpResponse.json(cfAccountsSuccess([{ id: 'acc-1', name: 'Account One' }]))
+    })
   )
+  return { userCalls: () => userCalls, accountCalls: () => accountCalls }
 }
 
 /** Collapse a response's Set-Cookie header(s) into a Cookie request header. */
@@ -294,9 +302,9 @@ describe('GET /oauth/callback', () => {
     expect(dp.blobs?.[3]).toBeFalsy()
   })
 
-  it('serves modern MCP from provider-issued authenticated props', async () => {
+  it('serves modern MCP without externally resolving the provider-issued token', async () => {
     const { clientId, state, sessionCookie } = await beginAuthorization()
-    useCloudflareAuthSuccess()
+    const probes = useCloudflareAuthSuccess()
     const callback = await exports.default.fetch(
       new Request(`${MCP_ORIGIN}/oauth/callback?code=authcode&state=${encodeURIComponent(state)}`, {
         headers: { Cookie: sessionCookie },
@@ -321,11 +329,15 @@ describe('GET /oauth/callback', () => {
     )
     expect(tokenResponse.status).toBe(200)
     const { access_token } = (await tokenResponse.json()) as { access_token: string }
+    expect(probes.userCalls()).toBe(1)
+    expect(probes.accountCalls()).toBe(1)
 
     const mcpResponse = await exports.default.fetch(modernMcpRequest(access_token, 'tools/list'))
     const mcpBody = await parseMcpResult(mcpResponse)
 
     expect(mcpResponse.status).toBe(200)
+    expect(probes.userCalls()).toBe(1)
+    expect(probes.accountCalls()).toBe(1)
     expect(mcpBody.result?.resultType).toBe('complete')
     expect(mcpBody.result?.tools?.map((tool) => tool.name)).toEqual(['docs', 'search', 'execute'])
   })
