@@ -63,6 +63,7 @@ export default {
           () => getOAuthApi(oauthOptions, env)
         ),
       resourceMetadata: {
+        resource: env.MCP_RESOURCE,
         resource_name: 'Cloudflare API MCP Server'
       },
       accessTokenTTL: 3600,

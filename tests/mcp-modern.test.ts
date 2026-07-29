@@ -21,6 +21,7 @@ import { server } from './setup/msw'
 
 const API_TOKEN = 'modern-mcp-token'
 const ACCOUNT_ID = '00000000000000000000000000000001'
+const MCP_ORIGIN = new URL(MCP_URL).origin
 
 const SPEC_PATHS = {
   '/accounts/{account_id}/workers/scripts': {
@@ -249,7 +250,10 @@ describe('MCP 2026-07-28 stateless handler', () => {
     )
 
     expect(response.status).toBe(401)
-    expect(await response.json()).toMatchObject({ error: 'invalid_token' })
+    expect(response.headers.get('WWW-Authenticate')).toContain(
+      `resource_metadata="${MCP_ORIGIN}/.well-known/oauth-protected-resource/mcp"`
+    )
+    expect(await response.text()).toBe('')
   })
 })
 
