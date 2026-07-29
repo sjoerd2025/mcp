@@ -20,6 +20,8 @@ import { server } from '../setup/msw'
 
 const REDIRECT_URI = 'https://app.example.com/cb'
 const MCP_ORIGIN = 'https://mcp.cloudflare.com'
+const DOWNSTREAM_CODE_VERIFIER = 'test-downstream-code-verifier'
+const DOWNSTREAM_CODE_CHALLENGE = 'I4fhllfHqqQsgap17V2SDI0scSei8H7U0e0rZBDIcbo'
 
 /** Register a client via the provider's RFC 7591 endpoint; returns its id. */
 async function registerClient(): Promise<string> {
@@ -62,6 +64,8 @@ async function beginAuthorization(options: { state?: string; scopes?: string } =
         response_type: 'code',
         client_id: clientId,
         redirect_uri: REDIRECT_URI,
+        code_challenge: DOWNSTREAM_CODE_CHALLENGE,
+        code_challenge_method: 'S256',
         scope: 'user:read',
         ...(options.state === undefined ? {} : { state: options.state })
       })
@@ -152,6 +156,8 @@ describe('GET /authorize', () => {
           response_type: 'code',
           client_id: clientId,
           redirect_uri: REDIRECT_URI,
+          code_challenge: DOWNSTREAM_CODE_CHALLENGE,
+          code_challenge_method: 'S256',
           scope: 'user:read'
         })
       )
@@ -232,7 +238,9 @@ describe('GET /authorize', () => {
         authorizeUrl({
           response_type: 'code',
           client_id: 'does-not-exist',
-          redirect_uri: REDIRECT_URI
+          redirect_uri: REDIRECT_URI,
+          code_challenge: DOWNSTREAM_CODE_CHALLENGE,
+          code_challenge_method: 'S256'
         })
       )
     )
@@ -306,7 +314,8 @@ describe('GET /oauth/callback', () => {
           grant_type: 'authorization_code',
           code: code!,
           client_id: clientId,
-          redirect_uri: REDIRECT_URI
+          redirect_uri: REDIRECT_URI,
+          code_verifier: DOWNSTREAM_CODE_VERIFIER
         }).toString()
       })
     )
