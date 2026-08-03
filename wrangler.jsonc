@@ -83,7 +83,7 @@
 			"kv_namespaces": [
 				{
 					"binding": "OAUTH_KV",
-					"id":"cd658e2801ac4ae6b18082e375f176a3"
+					"id":"d2c9b82a149fb05248c072050a018682"
 				}
 			],
 			"r2_buckets": [
@@ -133,7 +133,7 @@
 			"kv_namespaces": [
 				{
 					"binding": "OAUTH_KV",
-					"id": "c7d4e4f11dfe41e6a22228aa838a14f1"
+					"id": "d2c9b82a149fb05248c072050a018682"
 				}
 			],
 			"r2_buckets": [
